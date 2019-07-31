@@ -56,13 +56,13 @@ def exampleAcquisition(address, time, freq, code):  # time acquisition for each 
 
 
 def createThreads(address_list, time, freq_list, code_list):
-
-    thread1 = threading.Thread(target=exampleAcquisition, args=(address_list[0], time, freq_list[0], code_list[0]))
-    thread2 = threading.Thread(target=exampleAcquisition, args=(address_list[1], time, freq_list[1], code_list[1]))
-    thread1.start()
-    thread2.start()
-    thread1.join()
-    thread2.join()
+    thread_list = []
+    for index in range(len(address_list)):
+        thread_list.append(threading.Thread(target=exampleAcquisition, args=(address_list[index],
+                                            time, freq_list[index], code_list[index])))
+        thread_list[index].start()
+    for index in range(len(address_list)):
+        thread_list[index].join()
     if platform.system() == 'Darwin':
         plux.MacOS.stopMainLoop()
 
@@ -76,4 +76,4 @@ def createMainThread(address_list, time, freq_list, code_list):
     main_thread.join()
 
 
-createMainThread(["BTH00:07:80:4D:2E:76", "BTH00:07:80:3B:46:58"], 20, [1000, 2000], [0xFF, 0x01])
+createMainThread(["BTH00:07:80:D8:AB:46", "BTH00:07:80:3B:46:58", "BTH00:07:80:4D:2E:76"], 20, [2000, 2000, 1000], [0xFF, 0xFF, 0x01])

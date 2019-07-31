@@ -54,4 +54,4 @@ def exampleAcquisition(address, time, freq, code):  # time acquisition for each 
     device.close()
 
 
-exampleAcquisition("BTH00:07:80:4D:2E:76", 20, 1000, 0xFF)
+exampleAcquisition("BTH00:07:80:4D:2E:76", 20, 8000, 0x01)
