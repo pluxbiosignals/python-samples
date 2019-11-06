@@ -15,7 +15,7 @@ else:
 import plux
 
 
-class NewDevice(plux.MemoryDev):
+class NewDevice(plux.SignalsDev):
 
     def __init__(self, address):
         plux.MemoryDev.__init__(address)
@@ -76,4 +76,4 @@ def createMainThread(address_list, time, freq_list, code_list):
     main_thread.join()
 
 
-createMainThread(["BTH00:07:80:D8:AB:46", "BTH00:07:80:3B:46:58", "BTH00:07:80:4D:2E:76"], 20, [2000, 2000, 1000], [0xFF, 0xFF, 0x01])
+createMainThread(["BTH00:07:80:D8:AB:46", "BTH00:07:80:3B:46:58", "BTH00:07:80:4D:2E:76"], 20, [1000, 1000, 1000], [0xFF, 0xFF, 0x01])
