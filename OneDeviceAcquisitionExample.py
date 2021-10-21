@@ -3,14 +3,14 @@ import sys
 
 osDic = {"Darwin": "MacOS",
          "Linux": "Linux64",
-         "Windows":("Win32","Win64")}
+         "Windows":("Win32_37","Win64_37")}
 if platform.system() != "Windows":
     sys.path.append("PLUX-API-Python3/{}/plux.so".format(osDic[platform.system()]))
 else:
     if platform.architecture()[0] == '64bit':
-        sys.path.append("PLUX-API-Python3/Win64")
+        sys.path.append("PLUX-API-Python3/Win64_37")
     else:
-        sys.path.append("PLUX-API-Python3/Win32")
+        sys.path.append("PLUX-API-Python3/Win32_37")
 import plux
 
 
