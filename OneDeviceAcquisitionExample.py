@@ -1,16 +1,12 @@
 import platform
 import sys
 
-osDic = {"Darwin": "MacOS",
-         "Linux": "Linux64",
-         "Windows":("Win32_37","Win64_37")}
-if platform.system() != "Windows":
-    sys.path.append("PLUX-API-Python3/{}/plux.so".format(osDic[platform.system()]))
-else:
-    if platform.architecture()[0] == '64bit':
-        sys.path.append("PLUX-API-Python3/Win64_37")
-    else:
-        sys.path.append("PLUX-API-Python3/Win32_37")
+osDic = {"Darwin": "MacOS/plux.so",
+         "Linux": "Linux64/plux.so",
+         "Windows": f"Win{platform.architecture()[0][:2]}_{''.join(platform.python_version().split('.')[:2])}"}
+
+sys.path.append(f"PLUX-API-Python3/{osDic[platform.system()]}")
+
 import plux
 
 
@@ -18,20 +14,18 @@ class NewDevice(plux.SignalsDev):
 
     def __init__(self, address):
         plux.MemoryDev.__init__(address)
-        self.time = 0
+        self.duration = 0
         self.frequency = 0
 
     def onRawFrame(self, nSeq, data):  # onRawFrame takes three arguments
         if nSeq % 2000 == 0:
-            print(nSeq)
-        if nSeq/self.frequency > self.time:
-            return True
-        return False
+            print(nSeq, *data)
+        return nSeq > self.duration * self.frequency
 
 # example routines
 
 
-def exampleAcquisition(address, time, freq, code):  # time acquisition for each frequency
+def exampleAcquisition(address="BTH00:07:80:4D:2E:76", duration=20, frequency=1000, code=0x01):  # time acquisition for each frequency
     """
     Example acquisition.
 
@@ -46,12 +40,16 @@ def exampleAcquisition(address, time, freq, code):  # time acquisition for each 
     7 channels - 2000, 8 channels - 2000
     """
     device = NewDevice(address)
-    device.time = time  # interval of acquisition
-    device.frequency = freq
+    device.duration = int(duration)    # Duration of acquisition in seconds.
+    device.frequency = int(frequency)  # Samples per second.
+    if isinstance(code, str):
+        code = int(code, 16)  # From hexadecimal str to int
     device.start(device.frequency, code, 16)
     device.loop()  # calls device.onRawFrame until it returns True
     device.stop()
     device.close()
 
 
-exampleAcquisition("BTH00:07:80:4D:2E:76", 20, 1000, 0x01)
+if __name__ == '__main__':
+    # Use arguments from the terminal (if any) as the first arguments and use the remaining default values.
+    exampleAcquisition(*sys.argv[1:])
