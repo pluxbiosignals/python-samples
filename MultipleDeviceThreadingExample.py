@@ -1,22 +1,35 @@
-import threading
 import platform
 import sys
+import threading
 
-osDic = {"Darwin": "MacOS",
-         "Linux": "Linux64",
-         "Windows": ("Win32_37", "Win64_37")}
-if platform.system() != "Windows":
-    sys.path.append("PLUX-API-Python3/{}/plux.so".format(osDic[platform.system()]))
-else:
-    if platform.architecture()[0] == '64bit':
-        sys.path.append("PLUX-API-Python3/Win64_37")
-    else:
-        sys.path.append("PLUX-API-Python3/Win32_37")
+osDic = {
+    "Darwin": f"MacOS/Intel{''.join(platform.python_version().split('.')[:2])}",
+    "Linux": "Linux64",
+    "Windows": f"Win{platform.architecture()[0][:2]}_{''.join(platform.python_version().split('.')[:2])}",
+}
+if platform.mac_ver()[0] != "":
+    import subprocess
+    from os import linesep
+
+    p = subprocess.Popen("sw_vers", stdout=subprocess.PIPE)
+    result = p.communicate()[0].decode("utf-8").split(str("\t"))[2].split(linesep)[0]
+    if result.startswith("12."):
+        print("macOS version is Monterrey!")
+        osDic["Darwin"] = "MacOS/Intel310"
+        if (
+            int(platform.python_version().split(".")[0]) <= 3
+            and int(platform.python_version().split(".")[1]) < 10
+        ):
+            print(f"Python version required is ≥ 3.10. Installed is {platform.python_version()}")
+            exit()
+
+
+sys.path.append(f"PLUX-API-Python3/{osDic[platform.system()]}")
+
 import plux
 
 
 class NewDevice(plux.SignalsDev):
-
     def __init__(self, address):
         plux.MemoryDev.__init__(address)
         self.time = 0
@@ -25,9 +38,10 @@ class NewDevice(plux.SignalsDev):
     def onRawFrame(self, nSeq, data):  # onRawFrame takes three arguments
         if nSeq % 2000 == 0:
             print(nSeq)
-        if nSeq/self.frequency > self.time:
+        if nSeq / self.frequency > self.time:
             return True
         return False
+
 
 # example routines
 
@@ -58,22 +72,38 @@ def exampleAcquisition(address, time, freq, code):  # time acquisition for each 
 def createThreads(address_list, time, freq_list, code_list):
     thread_list = []
     for index in range(len(address_list)):
-        thread_list.append(threading.Thread(target=exampleAcquisition, args=(address_list[index],
-                                            time, freq_list[index], code_list[index])))
+        thread_list.append(
+            threading.Thread(
+                target=exampleAcquisition,
+                args=(
+                    address_list[index],
+                    time,
+                    freq_list[index],
+                    code_list[index],
+                ),
+            )
+        )
         thread_list[index].start()
     for index in range(len(address_list)):
         thread_list[index].join()
-    if platform.system() == 'Darwin':
+    if platform.system() == "Darwin":
         plux.MacOS.stopMainLoop()
 
 
 def createMainThread(address_list, time, freq_list, code_list):
 
-    main_thread = threading.Thread(target=createThreads, args=(address_list, time, freq_list, code_list))
+    main_thread = threading.Thread(
+        target=createThreads, args=(address_list, time, freq_list, code_list)
+    )
     main_thread.start()
-    if platform.system() == 'Darwin':
+    if platform.system() == "Darwin":
         plux.MacOS.runMainLoop()
     main_thread.join()
 
 
-createMainThread(["BTH00:07:80:D8:AB:46", "BTH00:07:80:3B:46:58", "BTH00:07:80:4D:2E:76"], 20, [1000, 1000, 1000], [0xFF, 0xFF, 0x01])
+createMainThread(
+    ["BTH00:07:80:D8:AB:46", "BTH00:07:80:3B:46:58", "BTH00:07:80:4D:2E:76"],
+    20,
+    [1000, 1000, 1000],
+    [0xFF, 0xFF, 0x01],
+)
