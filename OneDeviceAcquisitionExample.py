@@ -1,32 +1,47 @@
 import platform
 import sys
 
-osDic = {
-    "Darwin": f"MacOS/Intel{''.join(platform.python_version().split('.')[:2])}",
-    "Linux": "Linux64",
-    "Windows": f"Win{platform.architecture()[0][:2]}_{''.join(platform.python_version().split('.')[:2])}",
-}
-if platform.mac_ver()[0] != "":
-    import subprocess
-    from os import linesep
+system = platform.system()
+machine = platform.machine().lower()
+architecture = platform.architecture()[0][:2]
+major, minor = platform.python_version().split(".")[:2]
 
-    p = subprocess.Popen("sw_vers", stdout=subprocess.PIPE)
-    result = p.communicate()[0].decode("utf-8").split(str("\t"))[2].split(linesep)[0]
-    if result.startswith("12."):
-        print("macOS version is Monterrey!")
-        osDic["Darwin"] = "MacOS/Intel310"
-        if (
-            int(platform.python_version().split(".")[0]) <= 3
-            and int(platform.python_version().split(".")[1]) < 10
-        ):
-            print(f"Python version required is ≥ 3.10. Installed is {platform.python_version()}")
-            exit()
+try:
+    if system == "Windows":
+        if (int(major), int(minor)) < (3, 7):
+            raise ValueError("3.7")
+        api_dir = f"Win{architecture}_{major}{min(13, int(minor))}"
+    if system == "Darwin":
+        if machine == "x86_64":
+            if (int(major), int(minor)) < (3, 7):
+                raise ValueError("3.7")
+            api_dir = f"MacOS/Intel{major}{min(10, int(minor))}"
+        if machine == "arm64":
+            if (int(major), int(minor)) < (3, 7):
+                raise ValueError("3.7")
+            api_dir = f"M1_{major}{min(12, int(minor))}"
+    if system == "Linux":
+        if machine.startswith("arm") and architecture == "32":
+            if (int(major), int(minor)) < (3, 11):
+                api_dir = f"LinuxARM32"
+            else:
+                api_dir = f"LinuxARM32_311"
+        elif (machine.startswith("arm") and architecture == "64") or machine.startswith("aarch64"):
+            if (int(major), int(minor)) < (3, 8):
+                raise ValueError("3.8")
+            api_dir = f"LinuxARM64_{major}{min(9, int(minor))}"
+        elif architecture == "64":
+            api_dir = f"Linux64"
 
+    api_dir = f"PLUX-API-Python3/{api_dir}"  # Change here for manual specification.
+    sys.path.append(api_dir)
+    print(f"Loaded API: {api_dir}")
+except ValueError as e:
+    print(f"Python version required is ≥ {e}. Installed is {platform.python_version()}")
+    sys.exit(1)
 
-sys.path.append(f"PLUX-API-Python3/{osDic[platform.system()]}")
 
 import plux
-
 
 class NewDevice(plux.SignalsDev):
     def __init__(self, address):
@@ -38,7 +53,7 @@ class NewDevice(plux.SignalsDev):
         if nSeq % 2000 == 0:
             print(nSeq, *data)
         return nSeq > self.duration * self.frequency
-        
+
     def getConnectedSensors(self):
         sensors = self.getSensors()
 
@@ -96,14 +111,14 @@ def exampleAcquisition(
     device = NewDevice(address)
     device.duration = int(duration)  # Duration of acquisition in seconds.
     device.frequency = int(frequency)  # Samples per second.
-    
+
     # Get Battery level
     battery = device.getBattery()
     print(f"\nBattery charging level at {int(battery)}%")
 
     # Get port mask based on connected sensors
     sensors = device.getConnectedSensors()
-    
+
     if isinstance(code, str):
         code = int(code, 16)  # From hexadecimal str to int
     device.start(device.frequency, code, 16)
